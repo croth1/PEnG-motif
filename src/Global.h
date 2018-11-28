@@ -53,7 +53,9 @@ public:
 	static bool useAdvPWM;
 	static int pseudoCounts;
 
-	static int bgModelOrder;						         // background model order, defaults to 2
+	static int bgModelOrder;                     // background model order, defaults to 2
+	static bool no_bg_prob_approximation;
+	static float bg_seq_pseudocount_factor;
 	static int maxOptBgModelOrder;               // max background model order for optimization, defaults to 3
 	static bool interpolateBG;                   // calculate prior probabilities from lower-order probabilities
 	                                             // instead of background frequencies of mononucleotides

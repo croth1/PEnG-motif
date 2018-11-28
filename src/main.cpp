@@ -57,6 +57,10 @@ int main(int nargs, char **args) {
   params.filter_neighbors = Global::filter_neighbors;
   params.max_optimized_patterns = Global::maximum_optimized_patterns;
 
+  params.no_bg_prob_approximation = Global::no_bg_prob_approximation;
+  params.bg_seq_pseudocount_factor = Global::bg_seq_pseudocount_factor;
+  params.bg_sequence_set = Global::backgroundSequenceSet;
+
   peng.process(params, result);
 
   peng.filter_redundancy(Global::mergeBitfactorThreshold, result);

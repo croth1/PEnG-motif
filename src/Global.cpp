@@ -60,6 +60,9 @@ bool Global::filter_neighbors = true;
 unsigned Global::minimum_processed_motifs = 0;
 int Global::maximum_optimized_patterns = 50;
 
+bool Global::no_bg_prob_approximation = false;
+float Global::bg_seq_pseudocount_factor = 1.0f;
+
 void Global::init(int nargs, char* args[]){
   readArguments(nargs, args);
 
@@ -200,6 +203,17 @@ void Global::readArguments(int nargs, char* args[]){
     }
     else if (!strcmp(args[i], "--use-default-pwm")) {
       useAdvPWM = false;
+    }
+    else if (!strcmp(args[i], "--no-bg-prob-approximation")) {
+      no_bg_prob_approximation = true;
+    }
+    else if (!strcmp(args[i], "--bg-seq-pseudocount-factor")) {
+      if (++i>=nargs) {
+        printHelp();
+        LOG(ERROR) << "No expression following --pseudo-counts" << std::endl;
+        exit(4);
+      }
+      bg_seq_pseudocount_factor = std::stof(args[i]);
     }
     else if (!strcmp(args[i], "--pseudo-counts")) {
       if (++i>=nargs) {

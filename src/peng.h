@@ -31,6 +31,11 @@ public:
 	unsigned minimum_processed_motifs;
   bool filter_neighbors;
   int max_optimized_patterns;
+
+  bool no_bg_prob_approximation;
+  float bg_seq_pseudocount_factor;
+  SequenceSet* bg_sequence_set;
+
 };
 
 class Peng{

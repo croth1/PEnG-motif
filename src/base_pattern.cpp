@@ -15,7 +15,8 @@
 #include "base_pattern.h"
 
 BasePattern::BasePattern(const size_t pattern_length, Strand s, const int k, const int max_k,
-                         SequenceSet* sequence_set, BackgroundModel* bg) {
+                         SequenceSet* sequence_set, BackgroundModel* bg, SequenceSet* bg_sequences,
+                         bool no_bg_prob_approximation, float bg_seq_pseudocount_factor) {
   this->pattern_length = pattern_length;
   alphabet_size = Alphabet::getSize();
   strand = s;
@@ -48,11 +49,14 @@ BasePattern::BasePattern(const size_t pattern_length, Strand s, const int k, con
   }
 
   if(this->strand == Strand::BOTH_STRANDS) {
-    count_patterns(sequence_set);
+    this->ltot = count_patterns(sequence_set, this->pattern_counter);
   } else {
-    count_patterns_single_strand(sequence_set);
+    this->ltot = count_patterns_single_strand(sequence_set, this->pattern_counter);
   }
   expected_counts = new float[number_patterns];
+  if(no_bg_prob_approximation) {
+    calculate_bg_probabilities_from_seqs(bg_sequences, bg_seq_pseudocount_factor);
+  }
   calculate_expected_counts();
 
   //if(this->strand == Strand::PLUS_STRAND) {
@@ -301,6 +305,24 @@ void BasePattern::calculate_bg_probabilities(BackgroundModel* model, const int a
   }
 }
 
+void BasePattern::calculate_bg_probabilities_from_seqs(SequenceSet* bg_seqs, float pseudo_count_factor) {
+  size_t* bg_seq_counter = new size_t[number_patterns]();
+  size_t ltot;
+  if (strand == Strand::BOTH_STRANDS) {
+    ltot = count_patterns(bg_seqs, bg_seq_counter);
+  } else {
+    ltot = count_patterns_single_strand(bg_seqs, bg_seq_counter);
+  }
+  size_t n_pseudo_counts = pseudo_count_factor * number_patterns;
+  for(int k = 0; k <= max_k; k++) {
+    for (int i = 0; i < number_patterns; i++) {
+      pattern_bg_probabilities[k][i] =
+        ((float)bg_seq_counter[i] + (float)n_pseudo_counts * pattern_bg_probabilities[k][i]) / (float)(ltot + n_pseudo_counts);
+    }
+  }
+  delete[] bg_seq_counter;
+}
+
 void BasePattern::calculate_bg_probability(float* background_model, const int alphabet_size,
                                          const int k,
                                          int remaining_shifts, size_t pattern,
@@ -327,8 +349,8 @@ void BasePattern::calculate_bg_probability(float* background_model, const int al
 //count all possible patterns of a certain length within the alphabet on the given sequences (just one strand)
 //shift over characters not in the alphabet (seq[i] == 0)
 
-void BasePattern::count_patterns(SequenceSet* sequence_set) {
-  ltot = 0;
+size_t BasePattern::count_patterns(SequenceSet* sequence_set, size_t* pattern_counter) {
+  size_t ltot = 0;
   std::vector<Sequence*> sequences = sequence_set->getSequences();
   size_t* base_factors = BasePattern::getFactors();
   unsigned int* last_match_pos = new unsigned int[base_factors[pattern_length]]{};
@@ -385,14 +407,15 @@ void BasePattern::count_patterns(SequenceSet* sequence_set) {
   // store a second copy of the counts at the reverse complement id to allow fast lookup
   for (size_t kmer_id = 0; kmer_id < base_factors[pattern_length]; kmer_id++) {
     auto rc_kmer_id = BasePattern::getFastRevCompId(kmer_id);
-    if(kmer_id > rc_kmer_id) {
+    if (kmer_id > rc_kmer_id) {
       pattern_counter[kmer_id] = pattern_counter[rc_kmer_id];
     }
   }
+  return ltot;
 }
 
-void BasePattern::count_patterns_single_strand(SequenceSet* sequence_set) {
-  ltot = 0;
+size_t BasePattern::count_patterns_single_strand(SequenceSet* sequence_set, size_t* pattern_counter) {
+  size_t ltot = 0;
   std::vector<Sequence*> sequences = sequence_set->getSequences();
   size_t* base_factors = BasePattern::getFactors();
   unsigned int* last_match_pos = new unsigned int[base_factors[pattern_length]]{};
@@ -437,6 +460,7 @@ void BasePattern::count_patterns_single_strand(SequenceSet* sequence_set) {
     j += pattern_length; // match in a new sequence cannot overlap with match in previous sequence
   }
   delete[] last_match_pos;
+  return ltot;
 }
 
 std::vector<size_t> BasePattern::select_base_patterns(const float zscore_threshold,

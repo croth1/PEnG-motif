@@ -34,7 +34,8 @@ class BasePattern {
  public:
   //default de-/constructor
   BasePattern(const size_t pattern_length, Strand s, const int k, const int max_k,
-              SequenceSet* sequence_set, BackgroundModel* bg);
+              SequenceSet* sequence_set, BackgroundModel* bg, SequenceSet* bg_sequences,
+              bool no_bg_prob_approximation, float bg_seq_pseudocount_factor);
   ~BasePattern();
 
   //inits factor and pattern_length
@@ -148,8 +149,8 @@ private:
   void init_half_reverse_complements();
   void aggregate_double_strand_background();
 
-  void count_patterns(SequenceSet* sequence_set);
-  void count_patterns_single_strand(SequenceSet* sequence_set);
+  size_t count_patterns(SequenceSet* sequence_set, size_t* pattern_counter);
+  size_t count_patterns_single_strand(SequenceSet* sequence_set, size_t* pattern_counter);
   void calculate_bg_probabilities(BackgroundModel* model, const int alphabet_size, const int k, float* pattern_bg_probs);
   void calculate_bg_probability(float* background_model, const int alphabet_size,
                             const int k, int missing_pattern_length, size_t cur_pattern,
@@ -157,6 +158,7 @@ private:
   void calculate_log_pvalues();
   void calculate_zscores();
   void calculate_expected_counts();
+  void calculate_bg_probabilities_from_seqs(SequenceSet* bg_seqs, float bg_seq_pseudocount_factor);
   void calculate_expected_counts_single_stranded();
   float getMutualInformationScore(size_t pattern);
   void correct_counts();
